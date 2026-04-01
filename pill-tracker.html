@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pill tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fdf6f9;
+    --ink: #3d2030;
+    --muted: #b8909f;
+    --accent: #c9607a;
+    --card: #ffffff;
+    --border: #f0d8e2;
+    --pill-done: #c9607a;
+    --pill-miss: #c08080;
+    --pill-skip: #b8a0ac;
+  }
+
+  body {
+    font-family: 'Quicksand', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 28px 16px 70px;
+  }
+
+  header {
+    max-width: 420px;
+    margin: 0 auto 24px;
+  }
+
+  .header-emoji {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
+    font-size: 1.75rem;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 5px;
+    font-weight: 500;
+  }
+
+  .main {
+    max-width: 420px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card {
+    border-radius: 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: 0 2px 12px rgba(180, 80, 110, 0.06);
+  }
+
+  /* Today card — soft rose, not gradient-heavy */
+  .today-card {
+    background: #f5c2d0;
+    color: var(--ink);
+    border-radius: 20px;
+    padding: 22px;
+    border: none;
+    box-shadow: 0 4px 18px rgba(180, 80, 110, 0.14);
+  }
+
+  .today-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 2px;
+    font-weight: 700;
+  }
+
+  .today-date {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    font-weight: 400;
+    margin-bottom: 18px;
+    color: var(--ink);
+  }
+
+  .pills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pill-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 12px;
+    padding: 10px 14px;
+  }
+
+  .pill-name {
+    font-size: 0.83rem;
+    font-weight: 600;
+    flex: 1;
+    color: var(--ink);
+  }
+
+  .pill-time {
+    font-size: 0.64rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .pill-actions {
+    display: flex;
+    gap: 5px;
+  }
+
+  .btn-pill {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(180,100,120,0.2);
+    border-radius: 9px;
+    color: var(--ink);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 5px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-pill:hover { background: #fff; }
+  .btn-pill.took  { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-pill.missed { background: #e8a0a0; color: #fff; border-color: #e8a0a0; }
+  .btn-pill.skipped { background: #d8c8cc; color: #fff; border-color: #d8c8cc; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(60,20,30,0.15);
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .status-dot.took    { background: var(--accent); }
+  .status-dot.missed  { background: #e8a0a0; }
+  .status-dot.skipped { background: #c8b0b8; }
+
+  /* section title */
+  .section-title {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+
+  /* Add pill */
+  .add-form {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  input[type="text"], input[type="time"] {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--ink);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+
+  input[type="text"] { flex: 1; min-width: 120px; }
+  input[type="time"] { width: 110px; }
+
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,96,138,0.12);
+  }
+
+  input::placeholder { color: var(--muted); opacity: 0.7; }
+
+  .btn-add {
+    background: linear-gradient(135deg, #e8608a, #f9a8c9);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 10px 18px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s;
+    box-shadow: 0 4px 14px rgba(232,96,138,0.3);
+  }
+  .btn-add:hover { opacity: 0.88; }
+
+  .history-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+  }
+
+  .day-label {
+    font-size: 0.52rem;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.04em;
+    padding-bottom: 4px;
+    font-weight: 700;
+  }
+
+  .day-cell {
+    aspect-ratio: 1;
+    border-radius: 7px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .day-cell.all-took  { background: #f5c2d0; border-color: #e8a0b8; color: var(--ink); }
+  .day-cell.partial   { background: #fce8d0; border-color: #e8c0a0; color: var(--ink); }
+  .day-cell.all-missed { background: #f5d8d8; border-color: #e8b0b0; color: #a05050; }
+  .day-cell.today-cell { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .day-cell.selected-cell { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .day-cell.future { opacity: 0.25; }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .log-list::-webkit-scrollbar { width: 3px; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  .log-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--bg);
+    font-size: 0.72rem;
+    border: 1px solid var(--border);
+  }
+
+  .log-pill-name { font-weight: 600; }
+  .log-date { color: var(--muted); font-size: 0.63rem; font-weight: 500; }
+  .log-status { font-size: 0.63rem; font-weight: 700; }
+  .log-status.took    { color: var(--accent); }
+  .log-status.missed  { color: #c08080; }
+  .log-status.skipped { color: var(--muted); }
+
+  .manage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .manage-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-radius: 12px;
+    font-size: 0.78rem;
+    border: 1px solid var(--border);
+  }
+
+  .manage-info { display: flex; flex-direction: column; gap: 2px; }
+  .manage-info span { font-weight: 600; }
+  .manage-time { font-size: 0.62rem; color: var(--muted); font-weight: 500; }
+
+  .btn-delete {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-delete:hover { border-color: #e8b0b0; color: #c08080; }
+
+  .empty {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 14px 0;
+    font-weight: 500;
+  }
+
+  .streak-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 10px rgba(180,80,110,0.06);
+  }
+
+  .streak-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .streak-text { color: var(--muted); font-size: 0.68rem; line-height: 1.5; font-weight: 600; }
+  .streak-text strong { color: var(--ink); display: block; font-size: 0.76rem; }
+
+  .notif-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 18px;
+    box-shadow: 0 2px 10px rgba(180,80,110,0.05);
+  }
+
+  .notif-banner.granted { border-color: #e0c8d8; }
+  .notif-banner.denied  { border-color: #e8c0c0; }
+
+  .notif-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .notif-text { flex: 1; line-height: 1.4; color: var(--muted); font-size: 0.68rem; font-weight: 500; }
+  .notif-text strong { color: var(--ink); display: block; margin-bottom: 2px; font-size: 0.72rem; font-weight: 700; }
+
+  .btn-notif {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 8px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-notif:hover { opacity: 0.88; }
+  .btn-notif.on { background: #a84060; }
+
+  /* Date nav */
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .btn-nav {
+    background: rgba(255,255,255,0.55);
+    border: 1px solid rgba(180,100,120,0.18);
+    border-radius: 9px;
+    color: var(--ink);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-nav:hover { background: rgba(255,255,255,0.85); }
+  .btn-nav:disabled { opacity: 0.3; cursor: default; }
+  .date-display {
+    flex: 1;
+    text-align: center;
+  }
+  .date-display .d-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 1px;
+  }
+  .date-display .d-date {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 400;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="header-emoji">🌸</span>
+  <h1>your <em>pill</em> diary</h1>
+
+</header>
+
+<div class="main">
+
+  <!-- Notification banner -->
+  <div class="notif-banner" id="notifBanner">
+    <span class="notif-icon" id="notifIcon">🔔</span>
+    <div class="notif-text">
+      <strong id="notifTitle">enable reminders</strong>
+      <span id="notifDesc">get a nudge at each pill's set time</span>
+    </div>
+    <button class="btn-notif" id="notifBtn" onclick="requestNotifPermission()">enable</button>
+  </div>
+
+  <!-- Streak -->
+  <div class="streak-bar">
+    <div class="streak-num" id="streakNum">0</div>
+    <div class="streak-text"><strong id="streakLabel">day streak</strong><span id="streakSub">—</span></div>
+  </div>
+
+  <!-- Today -->
+  <div class="today-card">
+    <div class="date-nav">
+      <button class="btn-nav" id="btnPrev" onclick="changeDay(-1)">‹</button>
+      <div class="date-display">
+        <span class="d-label" id="dayLabel">today</span>
+        <div class="d-date" id="todayDate">—</div>
+      </div>
+      <button class="btn-nav" id="btnNext" onclick="changeDay(1)" disabled>›</button>
+    </div>
+    <div class="pills-list" id="pillsList">
+      <div class="empty" style="color:rgba(60,20,30,0.3)">no pills added yet</div>
+    </div>
+  </div>
+
+  <!-- Add pill -->
+  <div class="card">
+    <div class="section-title">✦ add a pill</div>
+    <div class="add-form">
+      <input type="text" id="pillName" placeholder="pill name" maxlength="40">
+      <input type="time" id="pillTime">
+      <button class="btn-add" onclick="addPill()">+ add</button>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="card">
+    <div class="section-title">🌸 last 28 days</div>
+    <div class="history-grid" id="historyGrid"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="section-title">✦ recent log</div>
+    <div class="log-list" id="logList">
+      <div class="empty">no entries yet</div>
+    </div>
+  </div>
+
+  <!-- Manage -->
+  <div class="card">
+    <div class="section-title">🌷 manage pills</div>
+    <div class="manage-list" id="manageList">
+      <div class="empty">no pills added</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let selectedOffset = 0; // 0 = today, -1 = yesterday, etc.
+
+  function getSelectedDate() {
+    const d = new Date();
+    d.setDate(d.getDate() + selectedOffset);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function getSelectedKey() {
+    return formatKey(getSelectedDate());
+  }
+
+  function changeDay(delta) {
+    selectedOffset += delta;
+    if (selectedOffset > 0) selectedOffset = 0;
+    render();
+  }
+
+  // ── Notification helpers ──────────────────────────────────────────
+  const notifSupported = ('Notification' in window);
+  let scheduledTimers = [];
+
+  function updateNotifBanner() {
+    const banner = document.getElementById('notifBanner');
+    const btn    = document.getElementById('notifBtn');
+    const icon   = document.getElementById('notifIcon');
+    const title  = document.getElementById('notifTitle');
+    const desc   = document.getElementById('notifDesc');
+
+    if (!notifSupported) {
+      banner.className = 'notif-banner denied';
+      icon.textContent = '🔕';
+      title.textContent = 'notifications not supported';
+      desc.textContent  = 'try Chrome on Android or desktop';
+      btn.style.display = 'none';
+      return;
+    }
+
+    const perm = Notification.permission;
+    if (perm === 'granted') {
+      banner.className = 'notif-banner granted';
+      icon.textContent = '🔔';
+      title.textContent = 'reminders on';
+      desc.textContent  = 'you\'ll get nudged at each pill\'s time';
+      btn.textContent   = 'on';
+      btn.className     = 'btn-notif on';
+      btn.onclick       = null;
+      scheduleAll();
+    } else if (perm === 'denied') {
+      banner.className = 'notif-banner denied';
+      icon.textContent = '🔕';
+      title.textContent = 'notifications blocked';
+      desc.textContent  = 'allow in browser settings to enable reminders';
+      btn.style.display = 'none';
+    } else {
+      banner.className = 'notif-banner';
+      icon.textContent = '🔔';
+      title.textContent = 'enable reminders';
+      desc.textContent  = 'get a nudge at each pill\'s set time';
+      btn.textContent   = 'enable';
+      btn.className     = 'btn-notif';
+      btn.onclick       = requestNotifPermission;
+    }
+  }
+
+  async function requestNotifPermission() {
+    if (!notifSupported) return;
+    const result = await Notification.requestPermission();
+    updateNotifBanner();
+  }
+
+  function scheduleAll() {
+    // Clear old timers
+    scheduledTimers.forEach(clearTimeout);
+    scheduledTimers = [];
+
+    if (!notifSupported || Notification.permission !== 'granted') return;
+    const { pills, log } = getData();
+    const now = new Date();
+    const todayKey_ = todayKey();
+
+    pills.forEach(p => {
+      if (!p.time) return;
+      const [h, m] = p.time.split(':').map(Number);
+      const fire = new Date();
+      fire.setHours(h, m, 0, 0);
+
+      // If already past today, schedule for tomorrow
+      if (fire <= now) fire.setDate(fire.getDate() + 1);
+
+      const delay = fire - now;
+      const t = setTimeout(() => {
+        const { log: freshLog } = getData();
+        const dayLog = freshLog[todayKey()] || {};
+        // Only notify if not already marked
+        if (!dayLog[p.id]) {
+          new Notification(`time for ${p.name} 💊`, {
+            body: 'tap to open your pill tracker',
+            icon: '',
+            tag: `pill-${p.id}`
+          });
+        }
+        // Reschedule for next day
+        scheduleAll();
+      }, delay);
+      scheduledTimers.push(t);
+    });
+  }
+
+  // ── Data ─────────────────────────────────────────────────────────
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function formatKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  }
+
+  function getData() {
+    return {
+      pills: JSON.parse(localStorage.getItem('pills') || '[]'),
+      log: JSON.parse(localStorage.getItem('log') || '{}')
+    };
+  }
+
+  function save(pills, log) {
+    localStorage.setItem('pills', JSON.stringify(pills));
+    localStorage.setItem('log', JSON.stringify(log));
+  }
+
+  function addPill() {
+    const name = document.getElementById('pillName').value.trim();
+    const time = document.getElementById('pillTime').value;
+    if (!name) return;
+    const { pills, log } = getData();
+    pills.push({ id: Date.now(), name, time });
+    save(pills, log);
+    document.getElementById('pillName').value = '';
+    scheduleAll();
+    render();
+  }
+
+  function deletePill(id) {
+    let { pills, log } = getData();
+    pills = pills.filter(p => p.id !== id);
+    save(pills, log);
+    scheduleAll();
+    render();
+  }
+
+  function markPill(pillId, status) {
+    const { pills, log } = getData();
+    const key = getSelectedKey();
+    if (!log[key]) log[key] = {};
+    if (log[key][pillId] === status) {
+      delete log[key][pillId];
+    } else {
+      log[key][pillId] = status;
+    }
+    save(pills, log);
+    render();
+  }
+
+  function calcStreak() {
+    const { pills, log } = getData();
+    if (!pills.length) return { streak: 0, sub: 'add your first pill' };
+    let streak = 0;
+    const today = new Date();
+    const todayStatuses = getStatuses(formatKey(today), pills, log);
+    const todayOk = todayStatuses.length > 0 && todayStatuses.every(s => s === 'took');
+    let start = todayOk ? 0 : 1;
+    for (let i = start; i < 365; i++) {
+      const check = new Date(today);
+      check.setDate(today.getDate() - i);
+      const key = formatKey(check);
+      const statuses = getStatuses(key, pills, log);
+      if (statuses.length === 0 || !statuses.every(s => s === 'took')) break;
+      streak++;
+    }
+    if (todayOk) return { streak, sub: streak === 1 ? 'keep going!' : '🔥 keep going!' };
+    return { streak, sub: streak > 0 ? 'mark today to extend' : 'mark today to start' };
+  }
+
+  function getStatuses(key, pills, log) {
+    const dayLog = log[key] || {};
+    return pills.map(p => dayLog[p.id] || null).filter(Boolean);
+  }
+
+  function render() {
+    const { pills, log } = getData();
+    const today = new Date();
+    const todayK = todayKey();
+    const selDate = getSelectedDate();
+    const key = getSelectedKey();
+    const dayLog = log[key] || {};
+
+    // Date nav
+    const dayLabel = document.getElementById('dayLabel');
+    const dateEl   = document.getElementById('todayDate');
+    if (selectedOffset === 0) dayLabel.textContent = 'today';
+    else if (selectedOffset === -1) dayLabel.textContent = 'yesterday';
+    else dayLabel.textContent = `${Math.abs(selectedOffset)} days ago`;
+    dateEl.textContent = `${DAYS[selDate.getDay()]}, ${selDate.getDate()} ${MONTHS[selDate.getMonth()]}`;
+
+    // Nav buttons
+    document.getElementById('btnNext').disabled = selectedOffset >= 0;
+    document.getElementById('btnPrev').disabled = false;
+
+    const pillsList = document.getElementById('pillsList');
+    if (!pills.length) {
+      pillsList.innerHTML = '<div class="empty" style="color:rgba(255,255,255,0.4)">no pills added yet</div>';
+    } else {
+      pillsList.innerHTML = pills.map(p => {
+        const status = dayLog[p.id] || '';
+        return `<div class="pill-row">
+          <div class="status-dot ${status}"></div>
+          <span class="pill-name">${p.name}</span>
+          <span class="pill-time">${p.time || '—'}</span>
+          <div class="pill-actions">
+            <button class="btn-pill ${status === 'took' ? 'took' : ''}" onclick="markPill(${p.id}, 'took')">took</button>
+            <button class="btn-pill ${status === 'missed' ? 'missed' : ''}" onclick="markPill(${p.id}, 'missed')">miss</button>
+            <button class="btn-pill ${status === 'skipped' ? 'skipped' : ''}" onclick="markPill(${p.id}, 'skipped')">skip</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    const grid = document.getElementById('historyGrid');
+    const dayLabels = ['S','M','T','W','T','F','S'].map(d =>
+      `<div class="day-label">${d}</div>`).join('');
+    let cells = '';
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 27);
+    const startDay = startDate.getDay();
+    for (let i = 0; i < startDay; i++) cells += '<div></div>';
+    for (let i = 0; i < 28; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      const k = formatKey(d);
+      const isTodayCell = k === todayK;
+      const isSelected = k === key;
+      const isFuture = d > today;
+      const dayLog2 = log[k] || {};
+      const statuses = pills.map(p => dayLog2[p.id]).filter(Boolean);
+      let cls = '';
+      if (!isFuture && pills.length && statuses.length) {
+        if (statuses.every(s => s === 'took')) cls = 'all-took';
+        else if (statuses.every(s => s === 'missed')) cls = 'all-missed';
+        else cls = 'partial';
+      }
+      if (isFuture) cls += ' future';
+      if (isTodayCell) cls += ' today-cell';
+      if (isSelected && !isTodayCell) cls += ' selected-cell';
+      cells += `<div class="day-cell ${cls}" title="${k}" onclick="jumpToDate('${k}')" style="cursor:pointer">${d.getDate()}</div>`;
+    }
+    grid.innerHTML = dayLabels + cells;
+
+    const logList = document.getElementById('logList');
+    const entries = [];
+    Object.entries(log).sort((a,b) => b[0].localeCompare(a[0])).slice(0, 30).forEach(([dateKey, dayLog3]) => {
+      const [y,m,dd] = dateKey.split('-');
+      const dateStr = `${parseInt(dd)} ${MONTHS[parseInt(m)-1]}`;
+      Object.entries(dayLog3).forEach(([pid, status]) => {
+        const pill = pills.find(p => p.id === parseInt(pid));
+        if (pill) entries.push({ dateStr, name: pill.name, status });
+      });
+    });
+    if (!entries.length) {
+      logList.innerHTML = '<div class="empty">no entries yet</div>';
+    } else {
+      logList.innerHTML = entries.slice(0,20).map(e =>
+        `<div class="log-entry">
+          <span class="log-pill-name">${e.name}</span>
+          <span class="log-date">${e.dateStr}</span>
+          <span class="log-status ${e.status}">${e.status}</span>
+        </div>`
+      ).join('');
+    }
+
+    const manageList = document.getElementById('manageList');
+    if (!pills.length) {
+      manageList.innerHTML = '<div class="empty">no pills added</div>';
+    } else {
+      manageList.innerHTML = pills.map(p =>
+        `<div class="manage-row">
+          <div class="manage-info">
+            <span>${p.name}</span>
+            <span class="manage-time">${p.time || 'no time set'}</span>
+          </div>
+          <button class="btn-delete" onclick="deletePill(${p.id})">remove</button>
+        </div>`
+      ).join('');
+    }
+
+    const { streak, sub } = calcStreak();
+    document.getElementById('streakNum').textContent = streak;
+    document.getElementById('streakSub').textContent = sub;
+  }
+
+  function jumpToDate(dateKey) {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const target = new Date(dateKey + 'T00:00:00');
+    const diff = Math.round((target - today) / (1000*60*60*24));
+    if (diff <= 0) { selectedOffset = diff; render(); }
+  }
+
+  document.getElementById('pillName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addPill();
+  });
+
+  updateNotifBanner();
+  scheduleAll();
+
+  // Pre-seed default pills if first time
+  if (!localStorage.getItem('pills')) {
+    const defaults = [
+      { id: 1000000001, name: 'Dinogest', time: '' },
+      { id: 1000000002, name: 'Supracal', time: '' }
+    ];
+    localStorage.setItem('pills', JSON.stringify(defaults));
+  }
+
+  render();
+</script>
+</body>
+</html>
