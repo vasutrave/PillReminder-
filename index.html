@@ -316,6 +316,7 @@
   .manage-info { display: flex; flex-direction: column; gap: 2px; }
   .manage-info span { font-weight: 600; }
   .manage-time { font-size: 0.62rem; color: var(--muted); font-weight: 500; }
+  .manage-actions { display: flex; gap: 5px; flex-shrink: 0; }
 
   .btn-delete {
     background: none;
@@ -330,6 +331,90 @@
     transition: all 0.15s;
   }
   .btn-delete:hover { border-color: #e8b0b0; color: #c08080; }
+
+  .btn-edit {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
+
+  .edit-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-radius: 12px;
+    border: 1.5px solid var(--accent);
+  }
+  .edit-form input[type="text"] { font-size: 0.78rem; padding: 7px 10px; flex: 1; min-width: 100px; }
+  .edit-form input[type="time"] { font-size: 0.78rem; padding: 7px 10px; width: 100px; }
+  .edit-form select {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--ink);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 7px 10px;
+    cursor: pointer;
+    outline: none;
+  }
+  .edit-form select:focus { border-color: var(--accent); }
+  .btn-save {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-cancel {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+
+  /* freq select in add form */
+  .add-form select {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--ink);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 10px 12px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    width: 130px;
+  }
+  .add-form select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,96,138,0.12);
+  }
 
   .empty {
     font-size: 0.75rem;
@@ -487,6 +572,15 @@
     <div class="add-form">
       <input type="text" id="pillName" placeholder="pill name" maxlength="40">
       <input type="time" id="pillTime">
+      <select id="pillFreq" title="times per week">
+        <option value="7">every day</option>
+        <option value="6">6× / week</option>
+        <option value="5">5× / week</option>
+        <option value="4">4× / week</option>
+        <option value="3">3× / week</option>
+        <option value="2">2× / week</option>
+        <option value="1">1× / week</option>
+      </select>
       <button class="btn-add" onclick="addPill()">+ add</button>
     </div>
   </div>
@@ -654,11 +748,45 @@
   function addPill() {
     const name = document.getElementById('pillName').value.trim();
     const time = document.getElementById('pillTime').value;
+    const freq = parseInt(document.getElementById('pillFreq').value, 10);
     if (!name) return;
     const { pills, log } = getData();
-    pills.push({ id: Date.now(), name, time });
+    pills.push({ id: Date.now(), name, time, freq });
     save(pills, log);
     document.getElementById('pillName').value = '';
+    scheduleAll();
+    render();
+  }
+
+  function editPill(id) {
+    const { pills } = getData();
+    const p = pills.find(x => x.id === id);
+    if (!p) return;
+    const freq = p.freq || 7;
+    const freqOptions = [7,6,5,4,3,2,1].map(v => {
+      const label = v === 7 ? 'every day' : `${v}× / week`;
+      return `<option value="${v}"${freq === v ? ' selected' : ''}>${label}</option>`;
+    }).join('');
+    const row = document.querySelector(`.manage-row[data-id="${id}"]`);
+    row.outerHTML = `
+      <div class="edit-form" data-id="${id}">
+        <input type="text" id="edit-name-${id}" value="${p.name}" maxlength="40" placeholder="pill name">
+        <input type="time" id="edit-time-${id}" value="${p.time || ''}">
+        <select id="edit-freq-${id}">${freqOptions}</select>
+        <button class="btn-save" onclick="savePill(${id})">save</button>
+        <button class="btn-cancel" onclick="render()">cancel</button>
+      </div>`;
+  }
+
+  function savePill(id) {
+    const name = document.getElementById(`edit-name-${id}`).value.trim();
+    const time = document.getElementById(`edit-time-${id}`).value;
+    const freq = parseInt(document.getElementById(`edit-freq-${id}`).value, 10);
+    if (!name) return;
+    const { pills, log } = getData();
+    const p = pills.find(x => x.id === id);
+    if (p) { p.name = name; p.time = time; p.freq = freq; }
+    save(pills, log);
     scheduleAll();
     render();
   }
@@ -804,15 +932,20 @@
     if (!pills.length) {
       manageList.innerHTML = '<div class="empty">no pills added</div>';
     } else {
-      manageList.innerHTML = pills.map(p =>
-        `<div class="manage-row">
+      manageList.innerHTML = pills.map(p => {
+        const freq = p.freq || 7;
+        const freqLabel = freq === 7 ? 'every day' : `${freq}× / week`;
+        return `<div class="manage-row" data-id="${p.id}">
           <div class="manage-info">
             <span>${p.name}</span>
-            <span class="manage-time">${p.time || 'no time set'}</span>
+            <span class="manage-time">${p.time || 'no time set'} · ${freqLabel}</span>
           </div>
-          <button class="btn-delete" onclick="deletePill(${p.id})">remove</button>
-        </div>`
-      ).join('');
+          <div class="manage-actions">
+            <button class="btn-edit" onclick="editPill(${p.id})">edit</button>
+            <button class="btn-delete" onclick="deletePill(${p.id})">remove</button>
+          </div>
+        </div>`;
+      }).join('');
     }
 
     const { streak, sub } = calcStreak();
