@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#fdf6f9"/>
+  <!-- Pill shape -->
+  <rect x="96" y="196" width="320" height="120" rx="60" fill="#c9607a"/>
+  <!-- Left half of pill (lighter shade) -->
+  <path d="M96 256 A60 60 0 0 1 156 196 H256 V316 H156 A60 60 0 0 1 96 256 Z" fill="#f9a8c9"/>
+  <!-- Dividing line -->
+  <line x1="256" y1="196" x2="256" y2="316" stroke="#fff" stroke-width="6"/>
+  <!-- Shine -->
+  <ellipse cx="185" cy="228" rx="34" ry="14" fill="rgba(255,255,255,0.35)" transform="rotate(-18 185 228)"/>
+</svg>
